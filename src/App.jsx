@@ -7,7 +7,7 @@ import Cines from './Component/Cines.jsx';
 import Dulceria from './Component/Dulceria.jsx';
 import Social from './Component/Social.jsx';
 import DetallePelicula from './Component/DetallePelicula.jsx';
-import AdminGestion from './Component/AdminGestion.jsx'; // 1. Importas tu panel temporal
+import AdminGestion from './Component/AdminGestion.jsx'; // 1. Panel temporal
 
 function App() {
   return (
