@@ -7,6 +7,7 @@ import Cines from './Component/Cines.jsx';
 import Dulceria from './Component/Dulceria.jsx';
 import Social from './Component/Social.jsx';
 import DetallePelicula from './Component/DetallePelicula.jsx';
+import AdminGestion from './Component/AdminGestion.jsx'; // 1. Importas tu panel temporal
 
 function App() {
   return (
@@ -19,6 +20,9 @@ function App() {
         <Route path="/dulceria" element={<Dulceria />} />
         <Route path="/social" element={<Social />} />
         <Route path="/menuPrincipal/detallePelicula" element={<DetallePelicula />} />
+        
+        {/* 2. Ruta de pruebas */}
+        <Route path="/pruebas-luis" element={<AdminGestion />} /> 
       </Routes>
     </Router>
   );

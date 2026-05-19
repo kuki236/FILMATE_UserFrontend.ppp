@@ -1,0 +1,125 @@
+/* Fondo oscuro que bloquea la pantalla */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Tarjeta principal */
+.modal-contenedor {
+  background-color: #F8F9FA;
+  padding: 30px;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  font-family: sans-serif;
+}
+
+.modal-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-titulo {
+  margin: 0;
+  color: #1A1A1A;
+  font-size: 24px;
+}
+
+.modal-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+.select-estado, .select-tipo {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+.modal-subtitulo {
+  margin: 0 0 15px 0;
+  color: #555;
+  font-size: 18px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.modal-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.fila-doble {
+  display: flex;
+  gap: 15px;
+}
+
+.input-grupo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.input-grupo label {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #444;
+}
+
+.input-grupo input, 
+.input-grupo textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.input-grupo input:focus, 
+.input-grupo textarea:focus {
+  border-color: #2D3282;
+}
+
+.modal-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-cancelar {
+  padding: 10px 20px;
+  background-color: transparent;
+  border: 1px solid #2D3282;
+  color: #2D3282;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-agregar {
+  padding: 10px 20px;
+  background-color: #2D3282;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
