@@ -10,30 +10,50 @@ const FALLBACK_IMAGE = 'https://placehold.co/400x400/0f172a/f8fafc?text=Filmate'
 
 const productosData = {
   combos: [
-    { id: 1, nombre: 'Combo Duo', precio: 18, imagen: 'https://images.unsplash.com/photo-1585238341710-4ecdca2a8f72?w=800&h=800&fit=crop' },
-    { id: 2, nombre: 'Combo 1', precio: 10, imagen: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=800&fit=crop' },
-    { id: 3, nombre: 'Combo Premium', precio: 25, imagen: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800&h=800&fit=crop' },
-    { id: 4, nombre: 'Combo Familiar', precio: 45, imagen: 'https://images.unsplash.com/photo-1555939594-58d7cb561282?w=800&h=800&fit=crop' },
+    {
+      id: 1,
+      nombre: 'Combo Pareja',
+      descripcion: '1 cancha gigante + 2 gaseosas medianas.',
+      precio: 35,
+      imagen: 'https://images.pexels.com/photos/7603978/pexels-photo-7603978.jpeg',
+    },
+    {
+      id: 2,
+      nombre: 'Combo Familiar',
+      descripcion: '2 canchas gigantes + 4 gaseosas medianas + 2 nachos.',
+      precio: 65,
+      imagen: 'https://images.pexels.com/photos/10397068/pexels-photo-10397068.jpeg',
+    },
   ],
   popcorn: [
-    { id: 5, nombre: 'Popcorn Pequeno', precio: 10, imagen: 'https://images.unsplash.com/photo-1599599810694-ec3f411b11b3?w=800&h=800&fit=crop' },
-    { id: 6, nombre: 'Popcorn Mediano', precio: 100, imagen: 'https://images.unsplash.com/photo-1585647324066-2e74a37dd32a?w=800&h=800&fit=crop' },
-    { id: 7, nombre: 'Popcorn Grande', precio: 123, imagen: 'https://images.unsplash.com/photo-1574080903038-11fade0c3da7?w=800&h=800&fit=crop' },
-    { id: 8, nombre: 'Popcorn XL', precio: 50, imagen: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop' },
+    {
+      id: 3,
+      nombre: 'Popcorn Grande',
+      descripcion: 'Cancha dulce grande.',
+      precio: 18,
+      imagen: 'https://images.pexels.com/photos/10353949/pexels-photo-10353949.jpeg',
+    },
   ],
   bebidas: [
-    { id: 9, nombre: 'Agua Mineral', precio: 20, imagen: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=800&h=800&fit=crop' },
-    { id: 10, nombre: 'Gaseosa Grande', precio: 15, imagen: 'https://images.unsplash.com/photo-1554866585-c4db4e50b916?w=800&h=800&fit=crop' },
-    { id: 11, nombre: 'Jugo Natural', precio: 12, imagen: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&h=800&fit=crop' },
-    { id: 12, nombre: 'Cerveza Artesanal', precio: 18, imagen: 'https://images.unsplash.com/photo-1608270861620-7291231b42f1?w=800&h=800&fit=crop' },
+    {
+      id: 4,
+      nombre: 'Gaseosa Grande 32oz',
+      descripcion: 'Bebida fria grande.',
+      precio: 12,
+      imagen: 'https://images.pexels.com/photos/9459202/pexels-photo-9459202.jpeg',
+    },
   ],
 };
 
 const categoryLabels = {
   combos: 'Combos',
-  popcorn: 'Popcorn',
+  popcorn: 'Cancha / Popcorn',
   bebidas: 'Bebidas',
 };
+
+const DEFAULT_TARIFF_ID = 1;
+const DEFAULT_TARIFF_NAME = 'General';
+const DEFAULT_TARIFF_PRICE = 22.5;
 
 const paymentOptions = [
   {
@@ -87,6 +107,9 @@ function TicketContent({ carrito, total, pedidoNumber, fechaCompra, bookingConte
             </p>
             <p className="mt-2 text-sm text-slate-300">
               Asientos: {bookingContext.asientos?.length ? bookingContext.asientos.join(', ') : 'Sin asientos seleccionados'}
+            </p>
+            <p className="mt-2 text-sm text-slate-300">
+              Tarifa aplicada: {DEFAULT_TARIFF_NAME} (id {DEFAULT_TARIFF_ID}) - S/. {DEFAULT_TARIFF_PRICE.toFixed(2)}
             </p>
           </div>
         )}
@@ -203,10 +226,13 @@ export const Dulceria = () => {
   const isSeatFlow = Boolean(bookingContext?.pelicula);
   const pageTitle = isSeatFlow ? 'Completa tu compra' : 'Elige tus snacks favoritos';
   const pageSubtitle = isSeatFlow
-    ? 'Tu compra incluye una reserva de película y asientos seleccionados.'
+    ? `Tu compra incluye una reserva de película y asientos seleccionados. Tarifa aplicada: ${DEFAULT_TARIFF_NAME} (id ${DEFAULT_TARIFF_ID}).`
     : 'Explora combos, popcorn y bebidas para armar tu pedido.';
 
-  const total = carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  const snacksTotal = carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  const seatsCount = bookingContext?.asientos?.length || 0;
+  const reservationTotal = isSeatFlow ? seatsCount * DEFAULT_TARIFF_PRICE : 0;
+  const total = snacksTotal + reservationTotal;
 
   useEffect(() => {
     try {
@@ -541,7 +567,7 @@ export const Dulceria = () => {
             return (
               <article
                 key={producto.id}
-                className={`product-card relative flex-shrink-0 overflow-hidden rounded-2xl border bg-slate-900 transition-all hover:-translate-y-1 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 snap-start ${
+                className={`group product-card relative flex-shrink-0 overflow-hidden rounded-2xl border bg-slate-900 transition-all hover:-translate-y-1 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 snap-start ${
                   lastAddedId === producto.id ? 'border-emerald-400 ring-2 ring-emerald-400/60 animate-pulse' : 'border-slate-700'
                 }`}
               >
@@ -551,12 +577,22 @@ export const Dulceria = () => {
                   </div>
                 )}
 
+                <div className="absolute right-3 top-3 z-20">
+                  <div className="peer flex h-7 w-7 cursor-help items-center justify-center rounded-full border border-white/25 bg-slate-950/80 text-xs font-bold text-white shadow-lg backdrop-blur">
+                    ?
+                  </div>
+                  <div className="pointer-events-none absolute right-0 top-9 z-20 w-56 rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2 text-left text-xs leading-relaxed text-slate-200 opacity-0 shadow-2xl transition-all duration-200 group-hover:opacity-100 peer-hover:opacity-100">
+                    {producto.descripcion}
+                  </div>
+                </div>
+
                 <div className="aspect-square overflow-hidden bg-slate-800">
                   <img
                     src={imageSrc}
                     alt={producto.nombre}
                     className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                     onError={() => handleImageError(producto.id, producto.nombre)}
                   />
                 </div>
@@ -620,6 +656,9 @@ export const Dulceria = () => {
                   <p className="text-sm text-slate-300">Asientos elegidos</p>
                   <p className="text-lg font-bold text-white">
                     {bookingContext.asientos?.length ? bookingContext.asientos.join(', ') : 'Sin asientos'}
+                  </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-blue-200">
+                    Tarifa general fija: id {DEFAULT_TARIFF_ID}
                   </p>
                 </div>
               </div>
@@ -685,6 +724,18 @@ export const Dulceria = () => {
                       <span className="text-slate-300">Total</span>
                       <span className="text-2xl font-bold text-white">S/. {total.toFixed(2)}</span>
                     </div>
+                    {isSeatFlow && (
+                      <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-800 p-4 text-sm text-slate-300">
+                        <div className="flex items-center justify-between">
+                          <span>Asientos ({seatsCount} x tarifa general)</span>
+                          <span>S/. {reservationTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Snacks</span>
+                          <span>S/. {snacksTotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
@@ -759,9 +810,15 @@ export const Dulceria = () => {
 
               <div className="mb-6 rounded-xl bg-slate-800 p-4">
                 <div className="flex items-center justify-between text-slate-300">
-                  <span>Subtotal</span>
-                  <span>S/. {total.toFixed(2)}</span>
+                  <span>Subtotal snacks</span>
+                  <span>S/. {snacksTotal.toFixed(2)}</span>
                 </div>
+                {isSeatFlow && (
+                  <div className="mt-2 flex items-center justify-between text-slate-300">
+                    <span>Subtotal asientos</span>
+                    <span>S/. {reservationTotal.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="mt-2 flex items-center justify-between border-t border-slate-700 pt-2 text-lg font-bold text-white">
                   <span>Total</span>
                   <span>S/. {total.toFixed(2)}</span>
@@ -806,6 +863,14 @@ export const Dulceria = () => {
               <div className="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
                 <p className="text-sm text-slate-300">Total a cobrar</p>
                 <p className="text-3xl font-bold text-white">S/. {total.toFixed(2)}</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-blue-200">
+                  Tarifa general: {DEFAULT_TARIFF_NAME} (id {DEFAULT_TARIFF_ID})
+                </p>
+                {isSeatFlow && (
+                  <p className="mt-2 text-sm text-slate-200">
+                    Asientos: {seatsCount} · Subtotal asientos: S/. {reservationTotal.toFixed(2)}
+                  </p>
+                )}
               </div>
 
               {bookingContext && (
@@ -817,6 +882,9 @@ export const Dulceria = () => {
                   </p>
                   <p className="mt-2 text-sm text-slate-300">
                     {bookingContext.asientos?.length ? bookingContext.asientos.join(', ') : 'Sin asientos'}
+                  </p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-blue-200">
+                    Tarifa aplicada: {DEFAULT_TARIFF_NAME} (id {DEFAULT_TARIFF_ID})
                   </p>
                 </div>
               )}
