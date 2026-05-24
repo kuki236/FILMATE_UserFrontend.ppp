@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header.jsx';
 import Footer from './Footer.jsx';
 import { AlertTriangle, ArrowLeft, Banknote, CheckCircle2, CreditCard, Minus, Plus, ShoppingCart, Smartphone, X } from 'lucide-react';
@@ -62,7 +62,7 @@ const paymentOptions = [
   },
 ];
 
-function TicketContent({ carrito, total, pedidoNumber, fechaCompra }) {
+function TicketContent({ carrito, total, pedidoNumber, fechaCompra, bookingContext }) {
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 text-white shadow-2xl">
       <div className="border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 px-6 py-5">
@@ -78,6 +78,18 @@ function TicketContent({ carrito, total, pedidoNumber, fechaCompra }) {
       </div>
 
       <div className="space-y-6 px-6 py-6">
+        {bookingContext && (
+          <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
+            <p className="text-xs uppercase tracking-[0.25em] text-blue-300">Reserva de película</p>
+            <p className="mt-2 text-lg font-bold text-white">{bookingContext.pelicula}</p>
+            <p className="mt-1 text-sm text-slate-200">
+              {bookingContext.sede} · {bookingContext.horario} · {bookingContext.sala}
+            </p>
+            <p className="mt-2 text-sm text-slate-300">
+              Asientos: {bookingContext.asientos?.length ? bookingContext.asientos.join(', ') : 'Sin asientos seleccionados'}
+            </p>
+          </div>
+        )}
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -143,12 +155,7 @@ function TicketContent({ carrito, total, pedidoNumber, fechaCompra }) {
 
 export const Dulceria = () => {
   const [carrito, setCarrito] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('filmate-dulceria-carrito');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return [];
   });
   const [showVerification, setShowVerification] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -191,12 +198,18 @@ export const Dulceria = () => {
     bebidas: useRef(null),
   };
   const navigate = useNavigate();
+  const location = useLocation();
+  const bookingContext = location.state || null;
+  const isSeatFlow = Boolean(bookingContext?.pelicula);
+  const pageTitle = isSeatFlow ? 'Completa tu compra' : 'Elige tus snacks favoritos';
+  const pageSubtitle = isSeatFlow
+    ? 'Tu compra incluye una reserva de película y asientos seleccionados.'
+    : 'Explora combos, popcorn y bebidas para armar tu pedido.';
 
   const total = carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
 
   useEffect(() => {
     try {
-      sessionStorage.setItem('filmate-dulceria-carrito', JSON.stringify(carrito));
       sessionStorage.setItem('filmate-dulceria-pedido', String(pedidoNumber));
       sessionStorage.setItem('filmate-dulceria-fecha', fechaCompra.toISOString());
     } catch {
@@ -329,8 +342,22 @@ export const Dulceria = () => {
     };
   }, []);
 
-  const cerrarYVolverADulceria = () => {
-    requestExit('dulceria');
+  const cerrarYVolverACartelera = () => {
+    limpiarYSalir();
+  };
+
+  const cerrarDespuesDePago = () => {
+    setShowSuccess(false);
+    setShowVerification(false);
+    setShowPayment(false);
+    setShowExitConfirm(false);
+
+    if (isSeatFlow) {
+      limpiarYSalir();
+      return;
+    }
+
+    setCarrito([]);
   };
 
   const limpiarYSalir = () => {
@@ -340,7 +367,6 @@ export const Dulceria = () => {
     setShowExitConfirm(false);
     setCarrito([]);
     try {
-      sessionStorage.removeItem('filmate-dulceria-carrito');
       sessionStorage.removeItem('filmate-dulceria-pedido');
       sessionStorage.removeItem('filmate-dulceria-fecha');
     } catch {
@@ -379,6 +405,21 @@ export const Dulceria = () => {
       pdf.text('Ticket de compra', marginX + 8, y + 16);
 
       y += 30;
+
+      if (bookingContext) {
+        pdf.setFillColor(15, 23, 42);
+        pdf.roundedRect(marginX, y, pageWidth - marginX * 2, 30, 4, 4, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.text('Reserva de película', marginX + 8, y + 8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(String(bookingContext.pelicula || 'Película'), marginX + 8, y + 15);
+        pdf.text(`${bookingContext.sede || ''} · ${bookingContext.horario || ''} · ${bookingContext.sala || ''}`, marginX + 8, y + 22);
+        const seatsText = `Asientos: ${(bookingContext.asientos && bookingContext.asientos.length) ? bookingContext.asientos.join(', ') : 'Sin asientos seleccionados'}`;
+        pdf.text(seatsText, marginX + 8, y + 28);
+        y += 36;
+      }
       pdf.setFillColor(15, 23, 42);
       pdf.roundedRect(marginX, y, pageWidth - marginX * 2, 24, 4, 4, 'F');
       pdf.setTextColor(255, 255, 255);
@@ -427,6 +468,10 @@ export const Dulceria = () => {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
       pdf.text('Presenta este QR en el mostrador para recoger tu pedido.', marginX, y);
+      if (bookingContext) {
+        y += 8;
+        pdf.text('Incluye tu reserva y tus asientos al presentar el ticket.', marginX, y);
+      }
 
       const blob = pdf.output('blob');
       const url = URL.createObjectURL(blob);
@@ -550,7 +595,36 @@ export const Dulceria = () => {
 
       <main className="flex-1 w-full px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <h1 className="mb-12 text-center text-4xl font-bold text-white">Elige tus snacks favoritos</h1>
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.35em] text-blue-300">
+              {isSeatFlow ? 'Flujo con reserva' : 'Flujo libre'}
+            </p>
+            <h1 className="text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
+            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-300 sm:text-base">
+              {pageSubtitle}
+            </p>
+          </div>
+
+          {bookingContext && (
+            <div className="mb-8 rounded-3xl border border-blue-400/40 bg-blue-500/10 p-5 text-white shadow-lg shadow-blue-950/20">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.25em] text-blue-300">Reserva seleccionada</p>
+                  <h2 className="mt-1 text-2xl font-bold">{bookingContext.pelicula}</h2>
+                  <p className="mt-2 text-slate-200">
+                    {bookingContext.sede} · {bookingContext.horario} · {bookingContext.sala}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/20 bg-slate-950/40 px-4 py-3">
+                  <p className="text-sm text-slate-300">Asientos elegidos</p>
+                  <p className="text-lg font-bold text-white">
+                    {bookingContext.asientos?.length ? bookingContext.asientos.join(', ') : 'Sin asientos'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
             <div className="lg:col-span-3">
@@ -566,7 +640,17 @@ export const Dulceria = () => {
               </div>
 
               {carrito.length === 0 ? (
-                <p className="py-8 text-center text-slate-400">Tu carrito esta vacio</p>
+                <div className="space-y-4 py-8 text-center">
+                  <p className="text-slate-400">Tu carrito esta vacio</p>
+                  {isSeatFlow && (
+                    <button
+                      onClick={iniciarPago}
+                      className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+                    >
+                      Omitir snacks
+                    </button>
+                  )}
+                </div>
               ) : (
                 <>
                   <div className="mb-6 max-h-96 space-y-4 overflow-y-auto pr-1">
@@ -603,12 +687,22 @@ export const Dulceria = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setShowVerification(true)}
-                    className="w-full rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700"
-                  >
-                    Confirmar pedido
-                  </button>
+                  <div className="grid grid-cols-1 gap-3">
+                    {isSeatFlow && (
+                      <button
+                        onClick={iniciarPago}
+                        className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+                      >
+                        Omitir snacks
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowVerification(true)}
+                      className="w-full rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700"
+                    >
+                      Confirmar pedido
+                    </button>
+                  </div>
                 </>
               )}
             </aside>
@@ -713,6 +807,19 @@ export const Dulceria = () => {
                 <p className="text-sm text-slate-300">Total a cobrar</p>
                 <p className="text-3xl font-bold text-white">S/. {total.toFixed(2)}</p>
               </div>
+
+              {bookingContext && (
+                <div className="mb-4 rounded-xl border border-slate-700 bg-slate-800 p-4">
+                  <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Película y asientos</p>
+                  <p className="mt-2 text-lg font-bold text-white">{bookingContext.pelicula}</p>
+                  <p className="mt-1 text-sm text-slate-300">
+                    {bookingContext.sede} · {bookingContext.horario} · {bookingContext.sala}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    {bookingContext.asientos?.length ? bookingContext.asientos.join(', ') : 'Sin asientos'}
+                  </p>
+                </div>
+              )}
 
               <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {paymentOptions.map((option) => {
@@ -864,7 +971,7 @@ export const Dulceria = () => {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center sm:p-4">
           <div className="relative w-full max-w-[95vw] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl sm:max-w-2xl">
             <button
-              onClick={cerrarYVolverADulceria}
+              onClick={cerrarDespuesDePago}
               className="absolute left-4 top-4 text-slate-400 transition-colors hover:text-white"
             >
               <ArrowLeft className="h-6 w-6" />
@@ -877,15 +984,16 @@ export const Dulceria = () => {
                   total={total}
                   pedidoNumber={pedidoNumber}
                   fechaCompra={fechaCompra}
+                  bookingContext={bookingContext}
                 />
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-6 sm:grid-cols-2">
                 <button
-                  onClick={cerrarYVolverADulceria}
+                  onClick={cerrarDespuesDePago}
                   className="rounded-lg bg-slate-700 py-2 font-semibold text-white transition-colors hover:bg-slate-600"
                 >
-                  Volver a dulceria
+                  {isSeatFlow ? 'Volver a cartelera' : 'Volver a dulcería'}
                 </button>
                 <button
                   onClick={descargarPDF}
