@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from './Header.jsx';
-import { Search, PencilLine, Star } from 'lucide-react';
+import { Search, PencilLine } from 'lucide-react';
+import { getAuthSession } from './authSession';
 
 const favorites = [
   {
@@ -39,6 +40,13 @@ const stats = [
 const tabs = ['Perfil', 'Películas', 'Listas', 'Actividad', 'Reseñas', 'Favoritos'];
 
 export const Social = () => {
+  const session = getAuthSession();
+  const user = session?.user;
+  const isRegistered = session?.mode === 'registered';
+  const displayName = isRegistered
+    ? `${user?.nombres || ''} ${user?.apellidos || ''}`.trim() || 'Usuario registrado'
+    : 'Invitado';
+
   return (
     <div className="min-h-screen bg-[#020b16] text-white flex flex-col">
       <Header />
@@ -56,7 +64,7 @@ export const Social = () => {
 
                 <div className="text-center sm:text-left">
                   <h1 className="text-5xl font-extrabold tracking-tight text-slate-100 sm:text-6xl">
-                    Kuki777
+                    {displayName}
                   </h1>
 
                   <button
@@ -64,7 +72,7 @@ export const Social = () => {
                     className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#2a6bb7] px-6 py-3 text-xl font-bold text-white transition-colors hover:bg-[#2f77c9]"
                   >
                     <PencilLine className="h-5 w-5" />
-                    Editar Perfil
+                    {isRegistered ? 'Editar Perfil' : 'Modo invitado'}
                   </button>
                 </div>
               </div>
@@ -114,7 +122,9 @@ export const Social = () => {
                 <h2 className="text-3xl font-bold text-white">Bio</h2>
                 <div className="mt-3 h-px w-full bg-white/60" />
                 <p className="mt-4 text-2xl font-semibold leading-snug text-white">
-                  Soy apasionado de las películas, soy muy curioso y me gusta el cine
+                  {isRegistered
+                    ? 'Soy apasionado de las películas, soy muy curioso y me gusta el cine'
+                    : 'Estás navegando como invitado. Inicia sesión para acceder a más funciones.'}
                 </p>
               </div>
 

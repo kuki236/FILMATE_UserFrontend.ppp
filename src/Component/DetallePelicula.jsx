@@ -202,7 +202,7 @@ export const DetallePelicula = () => {
                                 Volver
                             </button>
 
-                            <h2 className="min-w-0 px-1 text-center text-[clamp(0.95rem,3.5vw,3rem)] font-black uppercase leading-none tracking-tight text-white sm:text-[clamp(1.1rem,3vw,3.5rem)]">
+                            <h2 className="min-w-0 px-1 text-center text-[clamp(0.85rem,3.2vw,2.2rem)] font-black uppercase leading-tight tracking-tight text-white break-words sm:text-[clamp(1rem,2.8vw,2.8rem)]">
                                 Seleccionar Asientos
                             </h2>
 
@@ -234,7 +234,7 @@ export const DetallePelicula = () => {
                                     />
                                 </div>
 
-                                <h3 className="mt-3 text-center text-2xl font-black uppercase leading-none tracking-tight text-transparent [text-shadow:3px_3px_0_#ff2b50] sm:mt-5 sm:text-5xl">
+                                <h3 className="mx-auto mt-3 max-w-[11ch] px-2 text-center text-[clamp(1.8rem,5vw,3.2rem)] font-black uppercase leading-[0.95] tracking-tight text-transparent break-words [text-shadow:3px_3px_0_#ff2b50] sm:mt-5 sm:text-[clamp(2rem,4vw,4.2rem)]">
                                     {titulo}
                                 </h3>
 
@@ -286,10 +286,7 @@ export const DetallePelicula = () => {
 
                             <section className="overflow-hidden rounded-[1.5rem] border border-slate-700/60 bg-[#061321] p-3 shadow-2xl shadow-black/30 sm:rounded-[2rem] sm:p-6">
                                 <div className="mb-4 text-center sm:mb-5">
-                                    <h3 className="text-base font-extrabold uppercase tracking-wide text-white sm:text-3xl">
-                                        Pantalla
-                                    </h3>
-                                    <div className="mx-auto mt-2 h-4 w-full rounded-full bg-sky-200/80 text-center text-[0.65rem] font-black uppercase tracking-[0.14em] text-slate-600 sm:mt-3 sm:h-5 sm:text-2xl sm:tracking-[0.7em]">
+                                    <div className="mx-auto h-6 w-full rounded-full bg-sky-200/90 text-center text-[0.75rem] font-black uppercase tracking-[0.22em] text-slate-600 sm:h-8 sm:text-2xl sm:tracking-[0.7em]">
                                         Pantalla
                                     </div>
                                 </div>
@@ -316,9 +313,6 @@ export const DetallePelicula = () => {
                                     ))}
                                 </div>
 
-                                <div className="mt-4 rounded-full bg-sky-200 px-4 py-2 text-center text-[0.65rem] font-black uppercase tracking-[0.14em] text-slate-600 sm:mt-6 sm:px-6 sm:py-3 sm:text-2xl sm:tracking-[0.45em]">
-                                    Pantalla
-                                </div>
                             </section>
                             </div>
                         </div>
@@ -554,7 +548,7 @@ export const DetallePelicula = () => {
 
             <Footer />
 
-            <style jsx>{`
+            <style>{`
                 @keyframes scaleIn {
                     from { transform: scale(0.95); opacity: 0; }
                     to { transform: scale(1); opacity: 1; }
