@@ -88,6 +88,23 @@ export function normalizeMovie(movie) {
         .filter(Boolean)
     : [];
 
+  const directorsFromRelations = Array.isArray(movie.directores)
+    ? movie.directores
+        .map((relation) => relation?.director?.nombre || relation?.nombre || relation?.director_nombre || '')
+        .filter(Boolean)
+    : [];
+
+  const directorValue =
+    typeof movie.director === 'string'
+      ? movie.director.trim()
+      : movie.director?.nombre || movie.director?.nombre_director || movie.director?.director_nombre || '';
+
+  const directorText =
+    directorValue ||
+    directorsFromRelations.join(', ') ||
+    (typeof movie.directores === 'string' ? movie.directores : '') ||
+    'Por definir';
+
   return {
     id: movie.id_pelicula,
     titulo: movie.titulo,
@@ -100,7 +117,8 @@ export function normalizeMovie(movie) {
     trailerUrl: movie.url_trailer || '',
     trailer: 'TRÁILER OFICIAL',
     sinopsis: movie.sinopsis || 'Sinopsis próxima a actualizar.',
-    director: movie.director || 'Por definir',
+    director: directorText,
+    directores: directorsFromRelations,
     reparto: movie.reparto || actorsFromRelations.join(', ') || 'Por definir',
     estreno: movie.categoria_cartelera === 'Estreno',
     categoriaCartelera: movie.categoria_cartelera,
@@ -142,9 +160,59 @@ export async function getCinemaById(cinemaId) {
   return normalizeCinema(data);
 }
 
+const extractShowtimeList = (data) => {
+  const candidates = [
+    data,
+    data?.funciones,
+    data?.data,
+    data?.results,
+    data?.showtimes,
+    data?.items,
+    data?.payload,
+    data?.data?.funciones,
+    data?.data?.data,
+    data?.data?.results,
+    data?.data?.showtimes,
+    data?.data?.items,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+};
+
 export async function getShowtimesByCinema(cinemaId) {
   const data = await request(`/showtimes/cinema/${cinemaId}`);
-  return data;
+  const funciones = extractShowtimeList(data);
+
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    return {
+      ...data,
+      funciones,
+    };
+  }
+
+  return { funciones };
+}
+
+export async function getShowtimesByDate(targetDate, { cinemaId, movieId } = {}) {
+  const query = new URLSearchParams();
+
+  if (cinemaId !== undefined && cinemaId !== null && cinemaId !== '') {
+    query.set('cinema_id', String(cinemaId));
+  }
+
+  if (movieId !== undefined && movieId !== null && movieId !== '') {
+    query.set('movie_id', String(movieId));
+  }
+
+  const queryString = query.toString();
+  const data = await request(`/showtimes/date/${targetDate}${queryString ? `?${queryString}` : ''}`);
+  return Array.isArray(data) ? data : extractShowtimeList(data);
 }
 
 export async function getSeatMap(showtimeId) {
