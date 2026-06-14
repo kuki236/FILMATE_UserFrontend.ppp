@@ -146,8 +146,6 @@ export function normalizeMovie(movie) {
   const reparto = parseTextList(movie.reparto || movie.elenco).length
     ? parseTextList(movie.reparto || movie.elenco)
     : actorsFromRelations;
-  const estadoPelicula = movie.estado_pelicula || movie.categoria_cartelera || movie.estado_registro || '';
-
   const directorsFromRelations = Array.isArray(movie.directores)
     ? movie.directores
         .map((relation) => relation?.director?.nombre || relation?.nombre || relation?.director_nombre || '')
@@ -282,8 +280,16 @@ export function normalizeSnackProduct(product, categoriesById = {}) {
   };
 }
 
-export async function getMovies() {
-  const data = await request('/client/movies/');
+export async function getMovies({ skip = 0, limit = 50, generoId } = {}) {
+  const query = new URLSearchParams();
+  query.set('skip', String(skip));
+  query.set('limit', String(limit));
+
+  if (generoId !== undefined && generoId !== null && generoId !== '') {
+    query.set('genero_id', String(generoId));
+  }
+
+  const data = await request(`/client/movies/?${query.toString()}`);
   return Array.isArray(data) ? data.map(normalizeMovie) : [];
 }
 
@@ -424,6 +430,66 @@ export async function loginUser(payload) {
     ...data,
     user: normalizeUser(data?.user),
   };
+}
+
+export async function getUserProfile(userId) {
+  if (!userId) return null;
+  const data = await request(`/users/${userId}`);
+  return normalizeUser(data);
+}
+
+export async function updateUserProfile(userId, payload) {
+  if (!userId) return null;
+
+  const data = await request(`/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      nombre: payload.nombre,
+      username: payload.username || payload.nombreUsuario || payload.nombre_usuario,
+      correo: payload.correo || payload.correo_electronico,
+      telefono: payload.telefono || null,
+      url_perfil: payload.url_perfil || null,
+    }),
+  });
+
+  return normalizeUser(data);
+}
+
+export async function getFavoriteMovies(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/movies/favorites/${userId}`);
+  return asArray(data).map(normalizeMovie);
+}
+
+export async function getUserInteractions(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/interacciones/usuario/${userId}`);
+  return asArray(data);
+}
+
+export async function updateMovieInteraction(payload) {
+  return request('/client/interacciones/', {
+    method: 'POST',
+    body: JSON.stringify({
+      id_usuario: payload.id_usuario,
+      id_pelicula: payload.id_pelicula,
+      vista: Boolean(payload.vista),
+      favorita: Boolean(payload.favorita),
+      en_lista_seguimiento: Boolean(payload.en_lista_seguimiento),
+    }),
+  });
+}
+
+export async function getFollowers(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/seguidores/${userId}/seguidores`);
+  return asArray(data);
+}
+
+export async function getFollowing(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/seguidores/${userId}/siguiendo`);
+  return asArray(data);
 }
 
 export async function getSnackCategories() {

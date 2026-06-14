@@ -27,6 +27,18 @@ const handleImageFallback = (event) => {
     event.currentTarget.src = FALLBACK_MEDIA_IMAGE;
 };
 
+const movieSkeletons = Array.from({ length: 6 }, (_, index) => index);
+
+const MovieCardSkeleton = ({ large = false }) => (
+    <div className="overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-800/30">
+        <div className={`${large ? 'h-[550px]' : 'h-[420px]'} animate-pulse bg-slate-700/50`} />
+        <div className="space-y-3 p-5">
+            <div className="mx-auto h-5 w-2/3 animate-pulse rounded-full bg-slate-700/60" />
+            <div className="mx-auto h-4 w-1/2 animate-pulse rounded-full bg-slate-700/40" />
+        </div>
+    </div>
+);
+
 export const MenuPrincipal = () => {
     const navigate = useNavigate();
     const [peliculasData, setPeliculasData] = useState([]);
@@ -35,6 +47,8 @@ export const MenuPrincipal = () => {
     const [filteredShowtimes, setFilteredShowtimes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filtersLoading, setFiltersLoading] = useState(true);
+    const [showtimesFilterLoading, setShowtimesFilterLoading] = useState(false);
+    const [loadedShowtimeFilterKey, setLoadedShowtimeFilterKey] = useState('');
     const [error, setError] = useState('');
     const [selectedDay, setSelectedDay] = useState('');
     const [selectedCinema, setSelectedCinema] = useState('all');
@@ -214,20 +228,31 @@ export const MenuPrincipal = () => {
         const loadSelectedDayShowtimes = async () => {
             if (!selectedDay) {
                 setFilteredShowtimes([]);
+                setShowtimesFilterLoading(false);
+                setLoadedShowtimeFilterKey('');
                 return;
             }
 
+            const showtimeFilterKey = `${selectedDay}|${selectedCinema}`;
+
             try {
+                setShowtimesFilterLoading(true);
                 const funciones = await getShowtimesByDate(selectedDay, {
                     cinemaId: selectedCinema === 'all' ? undefined : selectedCinema,
                 });
 
                 if (!isMounted) return;
                 setFilteredShowtimes(Array.isArray(funciones) ? funciones : []);
+                setLoadedShowtimeFilterKey(showtimeFilterKey);
             } catch (err) {
                 if (!isMounted) return;
                 console.error('Error cargando funciones del filtro:', err);
                 setFilteredShowtimes([]);
+                setLoadedShowtimeFilterKey(showtimeFilterKey);
+            } finally {
+                if (isMounted) {
+                    setShowtimesFilterLoading(false);
+                }
             }
         };
 
@@ -335,7 +360,14 @@ export const MenuPrincipal = () => {
                 .sort((a, b) => (b.estreno ? 1 : 0) - (a.estreno ? 1 : 0)),
         [filteredPeliculas]
     );
-    const isCatalogLoading = loading;
+    const currentShowtimeFilterKey = selectedDay ? `${selectedDay}|${selectedCinema}` : '';
+    const showtimesReadyForCurrentFilter = !selectedDay || loadedShowtimeFilterKey === currentShowtimeFilterKey;
+    const isCatalogLoading =
+        loading ||
+        filtersLoading ||
+        (days.length > 0 && !selectedDay) ||
+        showtimesFilterLoading ||
+        !showtimesReadyForCurrentFilter;
     const defaultDay = days.find((day) => day.value === getOffsetDateKey(0))?.value || days[0]?.value || '';
     const hasActiveFilters = selectedCinema !== 'all' || selectedDay !== defaultDay || selectedGenre !== 'all';
     const clearFilters = () => {
@@ -359,7 +391,9 @@ export const MenuPrincipal = () => {
                     <h2 className="text-4xl font-bold text-white mb-8">Recomendaciones</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {isCatalogLoading ? (
-                            <div className="col-span-full text-gray-300">Cargando películas...</div>
+                            movieSkeletons.slice(0, 3).map((item) => (
+                                <MovieCardSkeleton key={item} large />
+                            ))
                         ) : displayPeliculas.length === 0 ? (
                             <div className="col-span-full rounded-3xl border border-slate-700/50 bg-slate-800/30 p-6 text-slate-300">
                                 No hay peliculas con funciones disponibles en la fecha seleccionada.
@@ -486,8 +520,10 @@ export const MenuPrincipal = () => {
                 <section>
                     <h2 className="text-4xl font-bold text-white mb-8">Cartelera</h2>
                     {isCatalogLoading ? (
-                        <div className="rounded-3xl border border-slate-700/50 bg-slate-800/30 p-6 text-slate-300">
-                            Cargando funciones de la BD...
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {movieSkeletons.map((item) => (
+                                <MovieCardSkeleton key={item} />
+                            ))}
                         </div>
                     ) : displayPeliculas.length === 0 ? (
                         <div className="rounded-3xl border border-slate-700/50 bg-slate-800/30 p-6 text-slate-300">

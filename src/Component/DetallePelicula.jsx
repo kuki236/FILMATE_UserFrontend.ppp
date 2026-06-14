@@ -962,17 +962,16 @@ export const DetallePelicula = () => {
             <Header />
 
             {/* BOTÓN VOLVER*/}
-            <div className="flex justify-end mt-6 px-4 sm:px-6 lg:px-8">
+            <div className="fixed right-4 top-24 z-40 sm:right-8">
                 <button
                     onClick={() => navigate('/menuPrincipal')}
-                    className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-full 
-                               transition-all duration-300 shadow-lg hover:scale-105"
+                    className="rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-red-950/40 transition-all duration-300 hover:scale-105 hover:bg-red-600 sm:px-6"
                 >
                     Volver a Cartelera
                 </button>
             </div>
 
-            <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+            <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
                 {movieError && (
                     <div className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-amber-100">
                         {movieError}
@@ -1088,9 +1087,6 @@ export const DetallePelicula = () => {
 
                         {/* Horarios */}
                         <div className="space-y-4">
-                            <div className="rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm font-semibold text-slate-200">
-                                Funciones para: {selectedShowtimeDateLabel}
-                            </div>
                             {showtimesLoading ? (
                                 <div className="rounded-3xl border border-slate-700/50 bg-slate-800/30 p-6 text-slate-300">
                                     Cargando horarios reales...
