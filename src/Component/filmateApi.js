@@ -2,6 +2,20 @@ const DEFAULT_API_URL = '/api';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/\/$/, '');
 
+const getWsBaseUrl = () => {
+  const configured = import.meta.env.VITE_WS_URL;
+  if (configured) return configured.replace(/\/$/, '');
+
+  if (typeof window === 'undefined') return '';
+
+  const apiUrl = API_BASE_URL.startsWith('http')
+    ? API_BASE_URL
+    : `${window.location.origin}${API_BASE_URL.startsWith('/') ? '' : '/'}${API_BASE_URL}`;
+  const url = new URL(apiUrl);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.toString().replace(/\/$/, '');
+};
+
 const ERROR_TRANSLATIONS = {
   'Email already registered': 'Ya existe una cuenta con ese correo.',
   'Username already taken': 'Ya existe una cuenta con ese nombre de usuario.',
@@ -109,6 +123,8 @@ const parseTextList = (value) => {
 };
 
 export function normalizeMovie(movie) {
+  if (!movie) return movie;
+
   const genresFromRelations = asArray(movie.generos)
     .map((relation) => {
       if (typeof relation === 'string') return relation;
@@ -130,8 +146,6 @@ export function normalizeMovie(movie) {
   const reparto = parseTextList(movie.reparto || movie.elenco).length
     ? parseTextList(movie.reparto || movie.elenco)
     : actorsFromRelations;
-  const estadoPelicula = movie.estado_pelicula || movie.categoria_cartelera || movie.estado_registro || '';
-
   const directorsFromRelations = Array.isArray(movie.directores)
     ? movie.directores
         .map((relation) => relation?.director?.nombre || relation?.nombre || relation?.director_nombre || '')
@@ -174,6 +188,8 @@ export function normalizeMovie(movie) {
 }
 
 export function normalizeCinema(cinema) {
+  if (!cinema) return cinema;
+
   return {
     id: cinema.id_cine,
     nombre: cinema.nombre_cine || cinema.nombre,
@@ -186,7 +202,7 @@ export function normalizeCinema(cinema) {
 }
 
 export function normalizeShowtime(showtime) {
-  const fechaHora = showtime.fecha_hora_inicio || showtime.fecha_hora || showtime.horario || '';
+  const fechaHora = showtime.fecha_hora || showtime.fecha_hora_inicio || showtime.horario || '';
   const precioBase = Number(showtime.precio_base ?? showtime.precio ?? 0);
 
   return {
@@ -199,12 +215,16 @@ export function normalizeShowtime(showtime) {
 }
 
 export function normalizeSeat(seat) {
+  if (!seat) return seat;
+
   const numero = seat.numero ?? seat.columna;
+  const estado = seat.estado || seat.estado_asiento || 'Disponible';
 
   return {
     ...seat,
     numero,
     columna: seat.columna ?? numero,
+    estado,
   };
 }
 
@@ -260,23 +280,31 @@ export function normalizeSnackProduct(product, categoriesById = {}) {
   };
 }
 
-export async function getMovies() {
-  const data = await request('/movies/');
+export async function getMovies({ skip = 0, limit = 50, generoId } = {}) {
+  const query = new URLSearchParams();
+  query.set('skip', String(skip));
+  query.set('limit', String(limit));
+
+  if (generoId !== undefined && generoId !== null && generoId !== '') {
+    query.set('genero_id', String(generoId));
+  }
+
+  const data = await request(`/client/movies/?${query.toString()}`);
   return Array.isArray(data) ? data.map(normalizeMovie) : [];
 }
 
 export async function getMovieById(movieId) {
-  const data = await request(`/movies/${movieId}/details`);
+  const data = await request(`/client/movies/${movieId}/details`);
   return normalizeMovie(data);
 }
 
 export async function getCinemas() {
-  const data = await request('/cinemas/');
+  const data = await request('/client/cinemas/');
   return Array.isArray(data) ? data.map(normalizeCinema) : [];
 }
 
 export async function getCinemaById(cinemaId) {
-  const data = await request(`/cinemas/${cinemaId}`);
+  const data = await request(`/client/cinemas/${cinemaId}`);
   return normalizeCinema(data);
 }
 
@@ -306,7 +334,7 @@ const extractShowtimeList = (data) => {
 };
 
 export async function getShowtimesByCinema(cinemaId) {
-  const data = await request(`/showtimes/cinema/${cinemaId}`);
+  const data = await request(`/client/showtimes/cinema/${cinemaId}`);
   const funciones = extractShowtimeList(data).map(normalizeShowtime);
 
   if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -331,13 +359,13 @@ export async function getShowtimesByDate(targetDate, { cinemaId, movieId } = {})
   }
 
   const queryString = query.toString();
-  const data = await request(`/showtimes/date/${targetDate}${queryString ? `?${queryString}` : ''}`);
+  const data = await request(`/client/showtimes/date/${targetDate}${queryString ? `?${queryString}` : ''}`);
   const funciones = Array.isArray(data) ? data : extractShowtimeList(data);
   return funciones.map(normalizeShowtime);
 }
 
 export async function getSeatMap(showtimeId) {
-  const data = await request(`/seats/showtime/${showtimeId}`);
+  const data = await request(`/client/seats/showtime/${showtimeId}`);
   return {
     ...data,
     asientos: asArray(data?.asientos).map(normalizeSeat),
@@ -345,7 +373,7 @@ export async function getSeatMap(showtimeId) {
 }
 
 export async function lockSeats(showtimeId, seatIds) {
-  return request('/seats/lock', {
+  return request('/client/seats/lock', {
     method: 'POST',
     body: JSON.stringify({
       id_funcion: showtimeId,
@@ -358,7 +386,7 @@ export async function checkoutOrder(payload) {
   const idsAsientos = payload.ids_asientos || payload.asientos || [];
   const snacks = payload.snacks || payload.confiteria || [];
 
-  return request('/orders/checkout', {
+  return request('/client/orders/checkout', {
     method: 'POST',
     body: JSON.stringify({
       id_usuario: payload.id_usuario,
@@ -404,20 +432,87 @@ export async function loginUser(payload) {
   };
 }
 
+export async function getUserProfile(userId) {
+  if (!userId) return null;
+  const data = await request(`/users/${userId}`);
+  return normalizeUser(data);
+}
+
+export async function updateUserProfile(userId, payload) {
+  if (!userId) return null;
+
+  const data = await request(`/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      nombre: payload.nombre,
+      username: payload.username || payload.nombreUsuario || payload.nombre_usuario,
+      correo: payload.correo || payload.correo_electronico,
+      telefono: payload.telefono || null,
+      url_perfil: payload.url_perfil || null,
+    }),
+  });
+
+  return normalizeUser(data);
+}
+
+export async function getFavoriteMovies(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/movies/favorites/${userId}`);
+  return asArray(data).map(normalizeMovie);
+}
+
+export async function getUserInteractions(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/interacciones/usuario/${userId}`);
+  return asArray(data);
+}
+
+export async function updateMovieInteraction(payload) {
+  return request('/client/interacciones/', {
+    method: 'POST',
+    body: JSON.stringify({
+      id_usuario: payload.id_usuario,
+      id_pelicula: payload.id_pelicula,
+      vista: Boolean(payload.vista),
+      favorita: Boolean(payload.favorita),
+      en_lista_seguimiento: Boolean(payload.en_lista_seguimiento),
+    }),
+  });
+}
+
+export async function getFollowers(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/seguidores/${userId}/seguidores`);
+  return asArray(data);
+}
+
+export async function getFollowing(userId) {
+  if (!userId) return [];
+  const data = await request(`/client/seguidores/${userId}/siguiendo`);
+  return asArray(data);
+}
+
 export async function getSnackCategories() {
-  const data = await request('/snacks/categories');
+  const data = await request('/client/snacks/categories');
   return asArray(data).map(normalizeSnackCategory);
 }
 
 export async function getSnackProducts() {
   const categories = await getSnackCategories();
   const categoriesById = Object.fromEntries(categories.map((category) => [category.id, category]));
-  const data = await request('/snacks/products');
+  const data = await request('/client/snacks/products');
 
   return {
     categories,
     products: asArray(data).map((product) => normalizeSnackProduct(product, categoriesById)),
   };
+}
+
+export function createSeatWebSocket(showtimeId) {
+  const wsBaseUrl = getWsBaseUrl();
+  if (!wsBaseUrl || !showtimeId) return null;
+
+  return new WebSocket(`${wsBaseUrl}/ws/seats/${showtimeId}`);
 }
 
 export { API_BASE_URL };
